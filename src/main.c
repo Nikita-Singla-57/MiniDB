@@ -1,7 +1,8 @@
-#include <stdio.h>
+#include "cli.h"
 
 int main(void)
 {
-    printf("Welcome to MiniDB!\n");
+    start_cli();
+
     return 0;
 }
