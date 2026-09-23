@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "cli.h"
+#include "table.h"
 
 void start_cli(void)
 {
@@ -32,6 +33,18 @@ void start_cli(void)
             printf(".help     Show this help message\n");
             printf(".version  Show MiniDB version\n");
             printf(".exit     Exit MiniDB\n");
+        }
+        else if (strcmp(input, ".test_table") == 0)
+        {
+            Table table;
+
+            init_table(&table, "students");
+
+            add_column(&table, "id", TYPE_INT);
+            add_column(&table, "name", TYPE_STRING);
+            add_column(&table, "age", TYPE_INT);
+
+            print_table(&table);
         }
         else if (strcmp(input, ".version") == 0)
         {
