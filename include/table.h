@@ -3,6 +3,7 @@
 
 #define MAX_COLUMNS 10
 #define MAX_NAME_LENGTH 50
+#define MAX_TABLES 10
 
 typedef enum
 {

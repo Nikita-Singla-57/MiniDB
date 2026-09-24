@@ -3,10 +3,14 @@
 
 #include "cli.h"
 #include "table.h"
+#include "parser.h"
 
 void start_cli(void)
 {
-    char input[100];
+    char input[500];
+
+    Table tables[MAX_TABLES];
+    int table_count = 0;
 
     printf("Welcome to MiniDB!\n");
     printf("Type \".help\" for help.\n\n");
@@ -45,6 +49,26 @@ void start_cli(void)
             add_column(&table, "age", TYPE_INT);
 
             print_table(&table);
+        }
+	else if (strncmp(input, "CREATE TABLE ", 12) == 0)
+	{
+            if (table_count >= MAX_TABLES)
+            {
+                printf("Error: maximum number of tables reached.\n");
+                continue;
+            }
+
+    	    if (parse_create_table(input, &tables[table_count]))
+    	    {
+                printf("Table '%s' created.\n",
+                        tables[table_count].name);
+
+                table_count++;
+            }
+            else
+            {
+                printf("Error: invalid CREATE TABLE statement.\n");
+            }
         }
         else if (strcmp(input, ".version") == 0)
         {
