@@ -9,6 +9,19 @@ void init_table(Table *table, const char *name)
     table->name[MAX_NAME_LENGTH - 1] = '\0';
 
     table->column_count = 0;
+    table->row_count = 0;
+}
+
+Table *find_table(Table tables[], int table_count, const char *name)
+{
+    for (int i = 0; i < table_count; i++)
+    {
+        if (strcmp(tables[i].name, name) == 0)
+        {
+            return &tables[i];
+        }
+    }
+    return NULL;
 }
 
 int add_column(Table *table, const char *name, ColumnType type)
@@ -26,6 +39,19 @@ int add_column(Table *table, const char *name, ColumnType type)
     column->type = type;
 
     table->column_count++;
+
+    return 1;
+}
+
+int add_row(Table *table, const Row *row)
+{
+    if (table->row_count >= MAX_ROWS)
+    {
+        return 0;
+    }
+
+    table->rows[table->row_count] = *row;
+    table->row_count++;
 
     return 1;
 }
