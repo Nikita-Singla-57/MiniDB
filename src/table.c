@@ -83,3 +83,61 @@ void print_table(const Table *table)
         printf("\n");
     }
 }
+
+void print_row(const Table *table, const Row *row)
+{
+    for (int i = 0; i < table->column_count; i++)
+    {
+        if (i > 0)
+        {
+            printf(" | ");
+        }
+
+        if (row->values[i].type == TYPE_INT)
+        {
+            printf("%d", row->values[i].data.int_value);
+        }
+        else if (row->values[i].type == TYPE_STRING)
+        {
+            printf("%s", row->values[i].data.string_value);
+        }
+        else if (row->values[i].type == TYPE_FLOAT)
+        {
+            printf("%.2f", row->values[i].data.float_value);
+        }
+    }
+
+    printf("\n");
+}
+
+void print_table_rows(const Table *table)
+{
+    for (int i = 0; i < table->column_count; i++)
+    {
+        if (i > 0)
+        {
+            printf(" | ");
+        }
+
+        printf("%s", table->columns[i].name);
+    }
+
+    printf("\n");
+
+    for (int i = 0; i < table->column_count; i++)
+    {
+        if (i > 0)
+        {
+            printf("-+-");
+        }
+
+        printf("--------");
+    }
+
+    printf("\n");
+
+    for (int i = 0; i < table->row_count; i++)
+    {
+        print_row(table, &table->rows[i]);
+    }
+}

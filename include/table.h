@@ -57,6 +57,10 @@ int add_row(Table *table, const Row *row);
 
 Table *find_table(Table tables[], int table_count, const char *name);
 
+void print_row(const Table *table, const Row *row);
+
+void print_table_rows(const Table *table);
+
 void print_table(const Table *table);
 
 #endif

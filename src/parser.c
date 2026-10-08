@@ -277,3 +277,31 @@ int build_row(const Table *table,
 
     return 1;
 }
+
+int parse_select(const char *input, char *table_name)
+{
+    const char *prefix = "SELECT * FROM ";
+
+    if (strncmp(input, prefix, strlen(prefix)) != 0)
+    {
+        return 0;
+    }
+
+    const char *table_start = input + strlen(prefix);
+
+    if (*table_start == '\0')
+    {
+        return 0;
+    }
+
+    int length = strlen(table_start);
+
+    if (length >= MAX_NAME_LENGTH)
+    {
+        return 0;
+    }
+
+    strcpy(table_name, table_start);
+
+    return 1;
+}

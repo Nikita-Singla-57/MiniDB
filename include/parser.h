@@ -15,4 +15,7 @@ int build_row(const Table *table,
               char tokens[][MAX_NAME_LENGTH],
               int token_count,
               Row *row);
+
+int parse_select(const char *input, char *table_name);
+
 #endif
