@@ -141,3 +141,38 @@ void print_table_rows(const Table *table)
         print_row(table, &table->rows[i]);
     }
 }
+int find_column(const Table *table, const char *column_name)
+{
+    for (int i = 0; i < table->column_count; i++)
+    {
+        if (strcmp(table->columns[i].name, column_name) == 0)
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+void print_column(const Table *table, int column_index)
+{
+    printf("%s\n", table->columns[column_index].name);
+    printf("----------------\n");
+
+    for (int i = 0; i < table->row_count; i++)
+    {
+        const Value *value = &table->rows[i].values[column_index];
+
+        if (value->type == TYPE_INT)
+        {
+            printf("%d\n", value->data.int_value);
+        }
+        else if (value->type == TYPE_STRING)
+        {
+            printf("%s\n", value->data.string_value);
+        }
+        else if (value->type == TYPE_FLOAT)
+        {
+            printf("%.2f\n", value->data.float_value);
+        }
+    }
+}

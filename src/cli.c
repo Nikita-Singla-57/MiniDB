@@ -97,22 +97,49 @@ void start_cli(void) {
 
             printf("Row inserted.\n");
         }
-        else if (strncmp(input, "SELECT * FROM", 13) == 0) {
-            char table_name[MAX_NAME_LENGTH];
+        else if (strncmp(input, "SELECT ", 7) == 0) {
+            if (strncmp(input, "SELECT * FROM ", 14) == 0) {
+                char table_name[MAX_NAME_LENGTH];
 
-            if (!parse_select(input, table_name)) {
-                printf("Error: invalid SELECT statement.\n");
-                continue;
+                if (!parse_select(input, table_name)) {
+                    printf("Error: invalid SELECT statement.\n");
+                    continue;
+                }
+
+                Table *table = find_table(tables, table_count, table_name);
+
+                if (table == NULL) {
+                    printf("Error: table '%s' does not exist.\n", table_name);
+                    continue;
+                }
+
+                print_table_rows(table);
             }
+            else {
+                char column_name[MAX_NAME_LENGTH];
+                char table_name[MAX_NAME_LENGTH];
 
-            Table *table = find_table(tables, table_count, table_name);
+                if (!parse_select_column(input, column_name, table_name)) {
+                    printf("Error: invalid SELECT statement.\n");
+                    continue;
+                }
 
-            if (table == NULL) {
-                printf("Error: table '%s' does not exist.\n", table_name);
-                continue;
+                Table *table = find_table(tables, table_count, table_name);
+
+                if (table == NULL) {
+                    printf("Error: table '%s' does not exist.\n", table_name);
+                    continue;
+                }
+
+                int column_index = find_column(table, column_name);
+
+                if (column_index == -1) {
+                    printf("Error: column '%s' does not exist.\n", column_name);
+                    continue;
+                }
+
+                print_column(table, column_index);
             }
-
-            print_table_rows(table);
         }
         else if (strcmp(input, ".test_build_row") == 0) {
             Table table;

@@ -18,4 +18,8 @@ int build_row(const Table *table,
 
 int parse_select(const char *input, char *table_name);
 
+int parse_select_column(const char *input,
+                        char *column_name,
+                        char *table_name);
+
 #endif

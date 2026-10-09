@@ -63,4 +63,8 @@ void print_table_rows(const Table *table);
 
 void print_table(const Table *table);
 
+int find_column(const Table *table, const char *column_name);
+
+void print_column(const Table *table, int column_index);
+
 #endif
