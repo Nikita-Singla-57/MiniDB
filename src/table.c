@@ -3,8 +3,7 @@
 
 #include "table.h"
 
-void init_table(Table *table, const char *name)
-{
+void init_table(Table *table, const char *name) {
     strncpy(table->name, name, MAX_NAME_LENGTH - 1);
     table->name[MAX_NAME_LENGTH - 1] = '\0';
 
@@ -12,22 +11,17 @@ void init_table(Table *table, const char *name)
     table->row_count = 0;
 }
 
-Table *find_table(Table tables[], int table_count, const char *name)
-{
-    for (int i = 0; i < table_count; i++)
-    {
-        if (strcmp(tables[i].name, name) == 0)
-        {
+Table *find_table(Table tables[], int table_count, const char *name) {
+    for (int i = 0; i < table_count; i++) {
+        if (strcmp(tables[i].name, name) == 0) {
             return &tables[i];
         }
     }
     return NULL;
 }
 
-int add_column(Table *table, const char *name, ColumnType type)
-{
-    if (table->column_count >= MAX_COLUMNS)
-    {
+int add_column(Table *table, const char *name, ColumnType type) {
+    if (table->column_count >= MAX_COLUMNS) {
         return 0;
     }
 
@@ -43,10 +37,8 @@ int add_column(Table *table, const char *name, ColumnType type)
     return 1;
 }
 
-int add_row(Table *table, const Row *row)
-{
-    if (table->row_count >= MAX_ROWS)
-    {
+int add_row(Table *table, const Row *row) {
+    if (table->row_count >= MAX_ROWS) {
         return 0;
     }
 
@@ -56,53 +48,44 @@ int add_row(Table *table, const Row *row)
     return 1;
 }
 
-void print_table(const Table *table)
-{
+void print_table(const Table *table) {
     printf("Table: %s\n\n", table->name);
     printf("Columns:\n");
 
-    for (int i = 0; i < table->column_count; i++)
-    {
+    for (int i = 0; i < table->column_count; i++) {
         printf("%d. %s ", i + 1, table->columns[i].name);
 
-        switch (table->columns[i].type)
-        {
-            case TYPE_INT:
-                printf("INT");
-                break;
+        switch (table->columns[i].type) {
+        case TYPE_INT:
+            printf("INT");
+            break;
 
-            case TYPE_STRING:
-                printf("STRING");
-                break;
+        case TYPE_STRING:
+            printf("STRING");
+            break;
 
-            case TYPE_FLOAT:
-                printf("FLOAT");
-                break;
+        case TYPE_FLOAT:
+            printf("FLOAT");
+            break;
         }
 
         printf("\n");
     }
 }
 
-void print_row(const Table *table, const Row *row)
-{
-    for (int i = 0; i < table->column_count; i++)
-    {
-        if (i > 0)
-        {
+void print_row(const Table *table, const Row *row) {
+    for (int i = 0; i < table->column_count; i++) {
+        if (i > 0) {
             printf(" | ");
         }
 
-        if (row->values[i].type == TYPE_INT)
-        {
+        if (row->values[i].type == TYPE_INT) {
             printf("%d", row->values[i].data.int_value);
         }
-        else if (row->values[i].type == TYPE_STRING)
-        {
+        else if (row->values[i].type == TYPE_STRING) {
             printf("%s", row->values[i].data.string_value);
         }
-        else if (row->values[i].type == TYPE_FLOAT)
-        {
+        else if (row->values[i].type == TYPE_FLOAT) {
             printf("%.2f", row->values[i].data.float_value);
         }
     }
@@ -110,12 +93,9 @@ void print_row(const Table *table, const Row *row)
     printf("\n");
 }
 
-void print_table_rows(const Table *table)
-{
-    for (int i = 0; i < table->column_count; i++)
-    {
-        if (i > 0)
-        {
+void print_table_rows(const Table *table) {
+    for (int i = 0; i < table->column_count; i++) {
+        if (i > 0) {
             printf(" | ");
         }
 
@@ -124,10 +104,8 @@ void print_table_rows(const Table *table)
 
     printf("\n");
 
-    for (int i = 0; i < table->column_count; i++)
-    {
-        if (i > 0)
-        {
+    for (int i = 0; i < table->column_count; i++) {
+        if (i > 0) {
             printf("-+-");
         }
 
@@ -136,43 +114,83 @@ void print_table_rows(const Table *table)
 
     printf("\n");
 
-    for (int i = 0; i < table->row_count; i++)
-    {
+    for (int i = 0; i < table->row_count; i++) {
         print_row(table, &table->rows[i]);
     }
 }
-int find_column(const Table *table, const char *column_name)
-{
-    for (int i = 0; i < table->column_count; i++)
-    {
-        if (strcmp(table->columns[i].name, column_name) == 0)
-        {
+int find_column(const Table *table, const char *column_name) {
+    for (int i = 0; i < table->column_count; i++) {
+        if (strcmp(table->columns[i].name, column_name) == 0) {
             return i;
         }
     }
 
     return -1;
 }
-void print_column(const Table *table, int column_index)
-{
+void print_column(const Table *table, int column_index) {
     printf("%s\n", table->columns[column_index].name);
     printf("----------------\n");
 
-    for (int i = 0; i < table->row_count; i++)
-    {
+    for (int i = 0; i < table->row_count; i++) {
         const Value *value = &table->rows[i].values[column_index];
 
-        if (value->type == TYPE_INT)
-        {
+        if (value->type == TYPE_INT) {
             printf("%d\n", value->data.int_value);
         }
-        else if (value->type == TYPE_STRING)
-        {
+        else if (value->type == TYPE_STRING) {
             printf("%s\n", value->data.string_value);
         }
-        else if (value->type == TYPE_FLOAT)
-        {
+        else if (value->type == TYPE_FLOAT) {
             printf("%.2f\n", value->data.float_value);
         }
+    }
+}
+
+void print_selected_columns(const Table *table, const int column_indices[],
+                            int selected_count) {
+    /* Print the selected column names */
+    for (int i = 0; i < selected_count; i++) {
+        if (i > 0) {
+            printf(" | ");
+        }
+
+        printf("%s", table->columns[column_indices[i]].name);
+    }
+
+    printf("\n");
+
+    /* Print a separator */
+    for (int i = 0; i < selected_count; i++) {
+        if (i > 0) {
+            printf("-+-");
+        }
+
+        printf("--------");
+    }
+
+    printf("\n");
+
+    /* Print the selected values from every row */
+    for (int row_index = 0; row_index < table->row_count; row_index++) {
+        for (int col_index = 0; col_index < selected_count; col_index++) {
+            if (col_index > 0) {
+                printf(" | ");
+            }
+
+            const Value *value =
+                &table->rows[row_index].values[column_indices[col_index]];
+
+            if (value->type == TYPE_INT) {
+                printf("%d", value->data.int_value);
+            }
+            else if (value->type == TYPE_STRING) {
+                printf("%s", value->data.string_value);
+            }
+            else if (value->type == TYPE_FLOAT) {
+                printf("%.2f", value->data.float_value);
+            }
+        }
+
+        printf("\n");
     }
 }

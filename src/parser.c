@@ -304,3 +304,49 @@ int parse_select_column(const char *input, char *column_name,
 
     return 1;
 }
+int parse_select_columns(const char *input, char *columns_text,
+                         char *table_name) {
+    const char *prefix = "SELECT ";
+    const char *from_keyword = " FROM ";
+
+    if (strncmp(input, prefix, strlen(prefix)) != 0) {
+        return 0;
+    }
+
+    const char *columns_start = input + strlen(prefix);
+    const char *from_start = strstr(columns_start, from_keyword);
+
+    if (from_start == NULL) {
+        return 0;
+    }
+
+    size_t columns_length = (size_t)(from_start - columns_start);
+
+    if (columns_length == 0 || columns_length >= MAX_NAME_LENGTH) {
+        return 0;
+    }
+
+    strncpy(columns_text, columns_start, columns_length);
+    columns_text[columns_length] = '\0';
+
+    const char *table_start = from_start + strlen(from_keyword);
+
+    while (*table_start == ' ') {
+        table_start++;
+    }
+
+    size_t table_length = strlen(table_start);
+
+    while (table_length > 0 && table_start[table_length - 1] == ' ') {
+        table_length--;
+    }
+
+    if (table_length == 0 || table_length >= MAX_NAME_LENGTH) {
+        return 0;
+    }
+
+    strncpy(table_name, table_start, table_length);
+    table_name[table_length] = '\0';
+
+    return 1;
+}

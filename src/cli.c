@@ -1,3 +1,5 @@
+
+
 #include <stdio.h>
 #include <string.h>
 
@@ -112,14 +114,13 @@ void start_cli(void) {
                     printf("Error: table '%s' does not exist.\n", table_name);
                     continue;
                 }
-
                 print_table_rows(table);
             }
             else {
-                char column_name[MAX_NAME_LENGTH];
+                char columns_text[MAX_NAME_LENGTH];
                 char table_name[MAX_NAME_LENGTH];
 
-                if (!parse_select_column(input, column_name, table_name)) {
+                if (!parse_select_columns(input, columns_text, table_name)) {
                     printf("Error: invalid SELECT statement.\n");
                     continue;
                 }
@@ -131,14 +132,57 @@ void start_cli(void) {
                     continue;
                 }
 
-                int column_index = find_column(table, column_name);
+                int column_indices[MAX_COLUMNS];
+                int selected_count = 0;
+                size_t columns_length = strlen(columns_text);
 
-                if (column_index == -1) {
-                    printf("Error: column '%s' does not exist.\n", column_name);
-                    continue;
+                while (columns_length > 0 &&
+                       columns_text[columns_length - 1] == ' ') {
+                    columns_length--;
                 }
 
-                print_column(table, column_index);
+                if (columns_length == 0 ||
+                    columns_text[columns_length - 1] == ',') {
+                    printf("Error: invalid column list.\n");
+                    continue;
+                }
+                char *token = strtok(columns_text, ",");
+                int valid_columns = 1;
+
+                while (token != NULL) {
+                    while (*token == ' ') {
+                        token++;
+                    }
+
+                    char *end = token + strlen(token) - 1;
+
+                    while (end >= token && *end == ' ') {
+                        *end = '\0';
+                        end--;
+                    }
+
+                    if (*token == '\0' || selected_count >= MAX_COLUMNS) {
+                        printf("Error: invalid column list.\n");
+                        valid_columns = 0;
+                        break;
+                    }
+
+                    int index = find_column(table, token);
+
+                    if (index == -1) {
+                        printf("Error: column '%s' does not exist.\n", token);
+                        valid_columns = 0;
+                        break;
+                    }
+
+                    column_indices[selected_count++] = index;
+                    token = strtok(NULL, ",");
+                }
+
+                if (valid_columns && token == NULL && selected_count > 0) {
+                    print_selected_columns(table, column_indices,
+                                           selected_count);
+                }
             }
         }
         else if (strcmp(input, ".test_build_row") == 0) {

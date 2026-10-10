@@ -6,39 +6,29 @@
 #define MAX_TABLES 10
 #define MAX_ROWS 100
 
-typedef enum
-{
-    TYPE_INT,
-    TYPE_STRING,
-    TYPE_FLOAT
-} ColumnType;
+typedef enum { TYPE_INT, TYPE_STRING, TYPE_FLOAT } ColumnType;
 
-typedef struct
-{
+typedef struct {
     char name[MAX_NAME_LENGTH];
     ColumnType type;
 } Column;
 
-typedef union
-{
+typedef union {
     int int_value;
     float float_value;
     char string_value[MAX_NAME_LENGTH];
 } ValueData;
 
-typedef struct
-{
+typedef struct {
     ColumnType type;
     ValueData data;
 } Value;
 
-typedef struct
-{
+typedef struct {
     Value values[MAX_COLUMNS];
 } Row;
 
-typedef struct
-{
+typedef struct {
     char name[MAX_NAME_LENGTH];
 
     Column columns[MAX_COLUMNS];
@@ -66,5 +56,8 @@ void print_table(const Table *table);
 int find_column(const Table *table, const char *column_name);
 
 void print_column(const Table *table, int column_index);
+
+void print_selected_columns(const Table *table, const int column_indices[],
+                            int selected_count);
 
 #endif
