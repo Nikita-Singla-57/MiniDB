@@ -1,6 +1,9 @@
+#include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
+#include "condition.h"
 #include "table.h"
 
 void init_table(Table *table, const char *name) {
@@ -193,4 +196,154 @@ void print_selected_columns(const Table *table, const int column_indices[],
 
         printf("\n");
     }
+}
+
+int row_matches_condition(const Table *table, const Row *row,
+                          const WhereCondition *condition) {
+    int column_index = find_column(table, condition->column_name);
+
+    if (column_index == -1) {
+        return 0;
+    }
+
+    const Value *value = &row->values[column_index];
+
+    if (value->type == TYPE_INT) {
+        char *end;
+        long parsed_value = strtol(condition->value, &end, 10);
+
+        if (end == condition->value || *end != '\0') {
+            return 0;
+        }
+
+        if (parsed_value < INT_MIN || parsed_value > INT_MAX) {
+            return 0;
+        }
+
+        int expected = (int)parsed_value;
+
+        if (strcmp(condition->operator, "=") == 0)
+            return value->data.int_value == expected;
+        if (strcmp(condition->operator, "!=") == 0)
+            return value->data.int_value != expected;
+        if (strcmp(condition->operator, ">") == 0)
+            return value->data.int_value > expected;
+        if (strcmp(condition->operator, "<") == 0)
+            return value->data.int_value < expected;
+        if (strcmp(condition->operator, ">=") == 0)
+            return value->data.int_value >= expected;
+        if (strcmp(condition->operator, "<=") == 0)
+            return value->data.int_value <= expected;
+    }
+    else if (value->type == TYPE_FLOAT) {
+        char *end;
+        float expected = strtof(condition->value, &end);
+
+        if (end == condition->value || *end != '\0') {
+            return 0;
+        }
+
+        if (strcmp(condition->operator, "=") == 0)
+            return value->data.float_value == expected;
+        if (strcmp(condition->operator, "!=") == 0)
+            return value->data.float_value != expected;
+        if (strcmp(condition->operator, ">") == 0)
+            return value->data.float_value > expected;
+        if (strcmp(condition->operator, "<") == 0)
+            return value->data.float_value < expected;
+        if (strcmp(condition->operator, ">=") == 0)
+            return value->data.float_value >= expected;
+        if (strcmp(condition->operator, "<=") == 0)
+            return value->data.float_value <= expected;
+    }
+    else if (value->type == TYPE_STRING) {
+        int comparison = strcmp(value->data.string_value, condition->value);
+
+        if (strcmp(condition->operator, "=") == 0)
+            return comparison == 0;
+        if (strcmp(condition->operator, "!=") == 0)
+            return comparison != 0;
+        if (strcmp(condition->operator, ">") == 0)
+            return comparison > 0;
+        if (strcmp(condition->operator, "<") == 0)
+            return comparison < 0;
+        if (strcmp(condition->operator, ">=") == 0)
+            return comparison >= 0;
+        if (strcmp(condition->operator, "<=") == 0)
+            return comparison <= 0;
+    }
+
+    return 0;
+}
+
+int update_rows(Table *table, const char *column_name, const char *new_value,
+                const WhereCondition *condition) {
+    int column_index = find_column(table, column_name);
+
+    if (column_index == -1) {
+        return 0;
+    }
+
+    ColumnType type = table->columns[column_index].type;
+    int updated_count = 0;
+
+    for (int i = 0; i < table->row_count; i++) {
+        Row *row = &table->rows[i];
+
+        if (!row_matches_condition(table, row, condition)) {
+            continue;
+        }
+
+        Value *value = &row->values[column_index];
+
+        if (type == TYPE_INT) {
+            char *end;
+            long parsed = strtol(new_value, &end, 10);
+
+            if (end == new_value || *end != '\0' || parsed < INT_MIN ||
+                parsed > INT_MAX) {
+                return 0;
+            }
+
+            value->data.int_value = (int)parsed;
+        }
+        else if (type == TYPE_FLOAT) {
+            char *end;
+            float parsed = strtof(new_value, &end);
+
+            if (end == new_value || *end != '\0') {
+                return 0;
+            }
+
+            value->data.float_value = parsed;
+        }
+        else if (type == TYPE_STRING) {
+            strncpy(value->data.string_value, new_value, MAX_NAME_LENGTH - 1);
+            value->data.string_value[MAX_NAME_LENGTH - 1] = '\0';
+        }
+
+        updated_count++;
+    }
+
+    return updated_count;
+}
+int delete_rows(Table *table, const WhereCondition *condition) {
+    int deleted_count = 0;
+    int i = 0;
+
+    while (i < table->row_count) {
+        if (row_matches_condition(table, &table->rows[i], condition)) {
+            for (int j = i; j < table->row_count - 1; j++) {
+                table->rows[j] = table->rows[j + 1];
+            }
+
+            table->row_count--;
+            deleted_count++;
+        }
+        else {
+            i++;
+        }
+    }
+
+    return deleted_count;
 }

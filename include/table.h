@@ -1,3 +1,4 @@
+
 #ifndef TABLE_H
 #define TABLE_H
 
@@ -36,28 +37,34 @@ typedef struct {
 
     Row rows[MAX_ROWS];
     int row_count;
-
 } Table;
 
+/* Forward declaration of WhereCondition */
+typedef struct WhereCondition WhereCondition;
+
+/* Table operations */
 void init_table(Table *table, const char *name);
-
 int add_column(Table *table, const char *name, ColumnType type);
-
 int add_row(Table *table, const Row *row);
-
 Table *find_table(Table tables[], int table_count, const char *name);
 
+/* Display operations */
 void print_row(const Table *table, const Row *row);
-
 void print_table_rows(const Table *table);
-
 void print_table(const Table *table);
-
 int find_column(const Table *table, const char *column_name);
-
 void print_column(const Table *table, int column_index);
-
 void print_selected_columns(const Table *table, const int column_indices[],
                             int selected_count);
 
+/* WHERE condition evaluation */
+int row_matches_condition(const Table *table, const Row *row,
+                          const WhereCondition *condition);
+
+/* update */
+int update_rows(Table *table, const char *column_name,
+                const char *new_value,
+                const WhereCondition *condition);
+
+int delete_rows(Table *table, const WhereCondition *condition);
 #endif

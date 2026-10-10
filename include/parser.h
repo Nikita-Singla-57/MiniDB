@@ -1,6 +1,8 @@
+
 #ifndef PARSER_H
 #define PARSER_H
 
+#include "condition.h"
 #include "table.h"
 
 int parse_create_table(const char *input, Table *table);
@@ -20,5 +22,12 @@ int parse_select(const char *input, char *table_name);
 int parse_select_column(const char *input, char *column_name, char *table_name);
 int parse_select_columns(const char *input, char *columns_text,
                          char *table_name);
+
+int parse_where_condition(const char *input, WhereCondition *condition);
+
+int parse_update(const char *input, char *table_name,
+                 char *column_name, char *new_value);
+
+int parse_delete(const char *input, char *table_name);
 
 #endif

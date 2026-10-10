@@ -1,5 +1,4 @@
 
-
 #include <stdio.h>
 #include <string.h>
 
@@ -54,7 +53,6 @@ void start_cli(void) {
 
             if (parse_create_table(input, &tables[table_count])) {
                 printf("Table '%s' created.\n", tables[table_count].name);
-
                 table_count++;
             }
             else {
@@ -64,10 +62,8 @@ void start_cli(void) {
         else if (strncmp(input, "INSERT INTO", 11) == 0) {
             char table_name[MAX_NAME_LENGTH];
             char values_text[500];
-
             char tokens[MAX_COLUMNS][MAX_NAME_LENGTH];
             int token_count;
-
             Row row;
 
             if (!parse_insert(input, table_name, values_text)) {
@@ -99,11 +95,118 @@ void start_cli(void) {
 
             printf("Row inserted.\n");
         }
-        else if (strncmp(input, "SELECT ", 7) == 0) {
-            if (strncmp(input, "SELECT * FROM ", 14) == 0) {
-                char table_name[MAX_NAME_LENGTH];
+        else if (strncmp(input, "UPDATE ", 7) == 0) {
+            char table_name[MAX_NAME_LENGTH];
+            char column_name[MAX_NAME_LENGTH];
+            char new_value[MAX_NAME_LENGTH];
+            WhereCondition condition;
 
-                if (!parse_select(input, table_name)) {
+            if (!parse_update(input, table_name, column_name, new_value)) {
+                printf("Error: invalid UPDATE statement.\n");
+                continue;
+            }
+
+            if (!parse_where_condition(input, &condition)) {
+                printf("Error: invalid WHERE condition.\n");
+                continue;
+            }
+
+            Table *table = find_table(tables, table_count, table_name);
+
+            if (table == NULL) {
+                printf("Error: table '%s' does not exist.\n", table_name);
+                continue;
+            }
+
+            if (find_column(table, column_name) == -1) {
+                printf("Error: column '%s' does not exist.\n", column_name);
+                continue;
+            }
+
+            if (find_column(table, condition.column_name) == -1) {
+                printf("Error: column '%s' does not exist.\n",
+                       condition.column_name);
+                continue;
+            }
+
+            int updated =
+                update_rows(table, column_name, new_value, &condition);
+
+            if (updated > 0) {
+                printf("%d row(s) updated.\n", updated);
+            }
+            else {
+                printf("No rows updated. Check the condition and value.\n");
+            }
+        }
+        else if (strncmp(input, "DELETE FROM ", 12) == 0) {
+            char table_name[MAX_NAME_LENGTH];
+            WhereCondition condition;
+
+            if (!parse_delete(input, table_name)) {
+                printf("Error: invalid DELETE statement.\n");
+                continue;
+            }
+
+            if (!parse_where_condition(input, &condition)) {
+                printf("Error: invalid WHERE condition.\n");
+                continue;
+            }
+
+            Table *table = find_table(tables, table_count, table_name);
+
+            if (table == NULL) {
+                printf("Error: table '%s' does not exist.\n", table_name);
+                continue;
+            }
+
+            if (find_column(table, condition.column_name) == -1) {
+                printf("Error: column '%s' does not exist.\n",
+                       condition.column_name);
+                continue;
+            }
+
+            int deleted = delete_rows(table, &condition);
+
+            if (deleted > 0) {
+                printf("%d row(s) deleted.\n", deleted);
+            }
+            else {
+                printf("No matching rows found.\n");
+            }
+        }
+        else if (strncmp(input, "SELECT ", 7) == 0) {
+
+            char base_query[sizeof(input)];
+            char table_name[MAX_NAME_LENGTH];
+
+            const char *where_start = strstr(input, " WHERE ");
+            int has_where = (where_start != NULL);
+            WhereCondition condition;
+
+            /*
+             * Separate the SELECT query from its WHERE condition.
+             */
+            if (has_where) {
+                size_t base_length = (size_t)(where_start - input);
+
+                memcpy(base_query, input, base_length);
+                base_query[base_length] = '\0';
+
+                if (!parse_where_condition(input, &condition)) {
+                    printf("Error: invalid WHERE condition.\n");
+                    continue;
+                }
+            }
+            else {
+                strcpy(base_query, input);
+            }
+
+            /*
+             * Parse SELECT * FROM ...
+             */
+            if (strncmp(base_query, "SELECT * FROM ", 14) == 0) {
+                if (!parse_select(base_query, table_name)) {
                     printf("Error: invalid SELECT statement.\n");
                     continue;
                 }
@@ -114,13 +217,40 @@ void start_cli(void) {
                     printf("Error: table '%s' does not exist.\n", table_name);
                     continue;
                 }
-                print_table_rows(table);
+
+                if (has_where) {
+                    if (find_column(table, condition.column_name) == -1) {
+                        printf("Error: column '%s' does not exist.\n",
+                               condition.column_name);
+                        continue;
+                    }
+
+                    int matched = 0;
+
+                    for (int i = 0; i < table->row_count; i++) {
+                        if (row_matches_condition(table, &table->rows[i],
+                                                  &condition)) {
+                            print_row(table, &table->rows[i]);
+                            matched = 1;
+                        }
+                    }
+
+                    if (!matched) {
+                        printf("No matching rows found.\n");
+                    }
+                }
+                else {
+                    print_table_rows(table);
+                }
             }
+            /*
+             * Parse SELECT column1, column2 FROM ...
+             */
             else {
                 char columns_text[MAX_NAME_LENGTH];
-                char table_name[MAX_NAME_LENGTH];
 
-                if (!parse_select_columns(input, columns_text, table_name)) {
+                if (!parse_select_columns(base_query, columns_text,
+                                          table_name)) {
                     printf("Error: invalid SELECT statement.\n");
                     continue;
                 }
@@ -146,6 +276,7 @@ void start_cli(void) {
                     printf("Error: invalid column list.\n");
                     continue;
                 }
+
                 char *token = strtok(columns_text, ",");
                 int valid_columns = 1;
 
@@ -154,12 +285,13 @@ void start_cli(void) {
                         token++;
                     }
 
-                    char *end = token + strlen(token) - 1;
+                    char *end = token + strlen(token);
 
-                    while (end >= token && *end == ' ') {
-                        *end = '\0';
+                    while (end > token && end[-1] == ' ') {
                         end--;
                     }
+
+                    *end = '\0';
 
                     if (*token == '\0' || selected_count >= MAX_COLUMNS) {
                         printf("Error: invalid column list.\n");
@@ -179,7 +311,42 @@ void start_cli(void) {
                     token = strtok(NULL, ",");
                 }
 
-                if (valid_columns && token == NULL && selected_count > 0) {
+                if (!valid_columns || token != NULL || selected_count == 0) {
+                    continue;
+                }
+
+                if (has_where) {
+                    if (find_column(table, condition.column_name) == -1) {
+                        printf("Error: column '%s' does not exist.\n",
+                               condition.column_name);
+                        continue;
+                    }
+
+                    /*
+                     * Create a temporary table containing only matching rows.
+                     */
+                    Table filtered_table = *table;
+                    filtered_table.row_count = 0;
+
+                    for (int i = 0; i < table->row_count; i++) {
+                        if (row_matches_condition(table, &table->rows[i],
+                                                  &condition)) {
+                            filtered_table.rows[filtered_table.row_count] =
+                                table->rows[i];
+
+                            filtered_table.row_count++;
+                        }
+                    }
+
+                    if (filtered_table.row_count == 0) {
+                        printf("No matching rows found.\n");
+                    }
+                    else {
+                        print_selected_columns(&filtered_table, column_indices,
+                                               selected_count);
+                    }
+                }
+                else {
                     print_selected_columns(table, column_indices,
                                            selected_count);
                 }
@@ -199,11 +366,8 @@ void start_cli(void) {
 
             if (build_row(&table, tokens, 3, &row)) {
                 printf("Row built successfully.\n");
-
                 printf("ID: %d\n", row.values[0].data.int_value);
-
                 printf("Name: %s\n", row.values[1].data.string_value);
-
                 printf("Age: %d\n", row.values[2].data.int_value);
             }
             else {
@@ -268,7 +432,6 @@ void start_cli(void) {
         }
         else if (strcmp(input, ".test_select_parser") == 0) {
             char table_name[MAX_NAME_LENGTH];
-
             const char *test_command = "SELECT * FROM students";
 
             if (parse_select(test_command, table_name)) {
