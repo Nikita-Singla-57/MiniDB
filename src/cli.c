@@ -45,6 +45,36 @@ void start_cli(void) {
 
             print_table(&table);
         }
+        else if (strncmp(input, "DROP TABLE ", 11) == 0) {
+            char table_name[MAX_NAME_LENGTH];
+
+            if (!parse_drop_table(input, table_name)) {
+                printf("Error: invalid DROP TABLE statement.\n");
+                continue;
+            }
+
+            int table_index = -1;
+
+            for (int i = 0; i < table_count; i++) {
+                if (strcmp(tables[i].name, table_name) == 0) {
+                    table_index = i;
+                    break;
+                }
+            }
+
+            if (table_index == -1) {
+                printf("Error: table '%s' does not exist.\n", table_name);
+                continue;
+            }
+
+            for (int i = table_index; i < table_count - 1; i++) {
+                tables[i] = tables[i + 1];
+            }
+
+            table_count--;
+
+            printf("Table '%s' dropped.\n", table_name);
+        }
         else if (strncmp(input, "CREATE TABLE ", 12) == 0) {
             if (table_count >= MAX_TABLES) {
                 printf("Error: maximum number of tables reached.\n");

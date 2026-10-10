@@ -30,4 +30,6 @@ int parse_update(const char *input, char *table_name,
 
 int parse_delete(const char *input, char *table_name);
 
+int parse_drop_table(const char *input, char *table_name);
+
 #endif

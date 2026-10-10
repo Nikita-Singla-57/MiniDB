@@ -513,3 +513,26 @@ int parse_delete(const char *input, char *table_name) {
 
     return 1;
 }
+int parse_drop_table(const char *input, char *table_name) {
+    const char *prefix = "DROP TABLE ";
+
+    if (strncmp(input, prefix, strlen(prefix)) != 0) {
+        return 0;
+    }
+
+    const char *name_start = input + strlen(prefix);
+    size_t name_length = strlen(name_start);
+
+    if (name_length == 0 || name_length >= MAX_NAME_LENGTH) {
+        return 0;
+    }
+
+    for (size_t i = 0; i < name_length; i++) {
+        if (name_start[i] == ' ') {
+            return 0;
+        }
+    }
+
+    strcpy(table_name, name_start);
+    return 1;
+}
