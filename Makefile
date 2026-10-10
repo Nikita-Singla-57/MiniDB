@@ -3,7 +3,7 @@ CFLAGS = -Wall -Wextra -Iinclude
 
 TARGET = minidb
 
-SRC = src/main.c src/cli.c src/table.c src/parser.c
+SRC = src/main.c src/cli.c src/table.c src/parser.c src/storage.c
 
 $(TARGET): $(SRC)
 	$(CC) $(CFLAGS) $(SRC) -o $(TARGET)

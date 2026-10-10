@@ -347,3 +347,45 @@ int delete_rows(Table *table, const WhereCondition *condition) {
 
     return deleted_count;
 }
+int sort_table(Table *table, const char *column_name, int descending) {
+    int column_index = find_column(table, column_name);
+
+    if (column_index == -1) {
+        return 0;
+    }
+
+    for (int i = 0; i < table->row_count - 1; i++) {
+        for (int j = 0; j < table->row_count - i - 1; j++) {
+            Value *a = &table->rows[j].values[column_index];
+            Value *b = &table->rows[j + 1].values[column_index];
+
+            int comparison = 0;
+
+            if (a->type == TYPE_INT) {
+                if (a->data.int_value > b->data.int_value)
+                    comparison = 1;
+                else if (a->data.int_value < b->data.int_value)
+                    comparison = -1;
+            }
+            else if (a->type == TYPE_FLOAT) {
+                if (a->data.float_value > b->data.float_value)
+                    comparison = 1;
+                else if (a->data.float_value < b->data.float_value)
+                    comparison = -1;
+            }
+            else if (a->type == TYPE_STRING) {
+                comparison = strcmp(a->data.string_value, b->data.string_value);
+            }
+
+            int should_swap = descending ? (comparison < 0) : (comparison > 0);
+
+            if (should_swap) {
+                Row temp = table->rows[j];
+                table->rows[j] = table->rows[j + 1];
+                table->rows[j + 1] = temp;
+            }
+        }
+    }
+
+    return 1;
+}

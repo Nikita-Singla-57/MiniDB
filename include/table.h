@@ -67,4 +67,6 @@ int update_rows(Table *table, const char *column_name,
                 const WhereCondition *condition);
 
 int delete_rows(Table *table, const WhereCondition *condition);
+
+int sort_table(Table *table, const char *column_name, int descending);
 #endif

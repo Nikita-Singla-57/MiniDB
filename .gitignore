@@ -23,3 +23,7 @@ Thumbs.db
 
 # Runtime database files
 data/*.db
+
+# Runtime database files
+minidb.dat
+data/*.db

@@ -32,4 +32,7 @@ int parse_delete(const char *input, char *table_name);
 
 int parse_drop_table(const char *input, char *table_name);
 
+int parse_order_by(const char *input, char *column_name,
+                   int *descending);
+
 #endif

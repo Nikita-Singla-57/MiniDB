@@ -536,3 +536,59 @@ int parse_drop_table(const char *input, char *table_name) {
     strcpy(table_name, name_start);
     return 1;
 }
+
+int parse_order_by(const char *input, char *column_name, int *descending) {
+    const char *keyword = " ORDER BY ";
+    const char *order_start = strstr(input, keyword);
+
+    if (order_start == NULL) {
+        return 0;
+    }
+
+    order_start += strlen(keyword);
+
+    char column[MAX_NAME_LENGTH];
+    char direction[10];
+    int consumed = 0;
+
+    if (sscanf(order_start, "%49s %9s%n", column, direction, &consumed) != 2) {
+        return 0;
+    }
+
+    /* Remove a trailing semicolon from the direction. */
+    size_t direction_length = strlen(direction);
+
+    if (direction_length > 0 && direction[direction_length - 1] == ';') {
+        direction[direction_length - 1] = '\0';
+    }
+
+    while (order_start[consumed] == ' ') {
+        consumed++;
+    }
+
+    /* Also allow a semicolon after the direction. */
+    if (order_start[consumed] == ';') {
+        consumed++;
+    }
+
+    while (order_start[consumed] == ' ') {
+        consumed++;
+    }
+
+    if (order_start[consumed] != '\0') {
+        return 0;
+    }
+
+    if (strcmp(direction, "ASC") == 0) {
+        *descending = 0;
+    }
+    else if (strcmp(direction, "DESC") == 0) {
+        *descending = 1;
+    }
+    else {
+        return 0;
+    }
+
+    strcpy(column_name, column);
+    return 1;
+}

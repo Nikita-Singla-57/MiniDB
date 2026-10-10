@@ -1,16 +1,20 @@
-
 #include <stdio.h>
 #include <string.h>
 
 #include "cli.h"
 #include "parser.h"
+#include "storage.h"
 #include "table.h"
-
 void start_cli(void) {
     char input[500];
 
     Table tables[MAX_TABLES];
     int table_count = 0;
+
+    if (!load_tables(tables, &table_count)) {
+        printf("Warning: Could not load saved data.\n");
+        table_count = 0;
+    }
 
     printf("Welcome to MiniDB!\n");
     printf("Type \".help\" for help.\n\n");
@@ -38,7 +42,6 @@ void start_cli(void) {
             Table table;
 
             init_table(&table, "students");
-
             add_column(&table, "id", TYPE_INT);
             add_column(&table, "name", TYPE_STRING);
             add_column(&table, "age", TYPE_INT);
@@ -72,8 +75,11 @@ void start_cli(void) {
             }
 
             table_count--;
-
             printf("Table '%s' dropped.\n", table_name);
+
+            if (!save_tables(tables, table_count)) {
+                printf("Warning: Could not save database.\n");
+            }
         }
         else if (strncmp(input, "CREATE TABLE ", 12) == 0) {
             if (table_count >= MAX_TABLES) {
@@ -84,6 +90,9 @@ void start_cli(void) {
             if (parse_create_table(input, &tables[table_count])) {
                 printf("Table '%s' created.\n", tables[table_count].name);
                 table_count++;
+                if (!save_tables(tables, table_count)) {
+                    printf("Warning: Could not save database.\n");
+                }
             }
             else {
                 printf("Error: invalid CREATE TABLE statement.\n");
@@ -124,6 +133,9 @@ void start_cli(void) {
             }
 
             printf("Row inserted.\n");
+            if (!save_tables(tables, table_count)) {
+                printf("Warning: Could not save database.\n");
+            }
         }
         else if (strncmp(input, "UPDATE ", 7) == 0) {
             char table_name[MAX_NAME_LENGTH];
@@ -164,6 +176,10 @@ void start_cli(void) {
 
             if (updated > 0) {
                 printf("%d row(s) updated.\n", updated);
+
+                if (!save_tables(tables, table_count)) {
+                    printf("Warning: Could not save database.\n");
+                }
             }
             else {
                 printf("No rows updated. Check the condition and value.\n");
@@ -200,26 +216,49 @@ void start_cli(void) {
 
             if (deleted > 0) {
                 printf("%d row(s) deleted.\n", deleted);
+
+                if (!save_tables(tables, table_count)) {
+                    printf("Warning: Could not save database.\n");
+                }
             }
             else {
                 printf("No matching rows found.\n");
             }
         }
         else if (strncmp(input, "SELECT ", 7) == 0) {
-
             char base_query[sizeof(input)];
             char table_name[MAX_NAME_LENGTH];
+            char order_column[MAX_NAME_LENGTH];
+            int descending = 0;
 
+            const char *order_start = strstr(input, " ORDER BY ");
             const char *where_start = strstr(input, " WHERE ");
+            int has_order = (order_start != NULL);
             int has_where = (where_start != NULL);
+
             WhereCondition condition;
 
-            /*
-             * Separate the SELECT query from its WHERE condition.
-             */
-            if (has_where) {
-                size_t base_length = (size_t)(where_start - input);
+            if (has_order &&
+                !parse_order_by(input, order_column, &descending)) {
+                printf("Error: invalid ORDER BY clause.\n");
+                continue;
+            }
 
+            /*
+             * Remove ORDER BY from the query first.
+             * Then separate the SELECT query from WHERE.
+             */
+            const char *query_end =
+                order_start != NULL ? order_start : input + strlen(input);
+
+            const char *where_in_query = NULL;
+
+            if (where_start != NULL && where_start < query_end) {
+                where_in_query = where_start;
+            }
+
+            if (where_in_query != NULL) {
+                size_t base_length = (size_t)(where_in_query - input);
                 memcpy(base_query, input, base_length);
                 base_query[base_length] = '\0';
 
@@ -229,11 +268,13 @@ void start_cli(void) {
                 }
             }
             else {
-                strcpy(base_query, input);
+                size_t base_length = (size_t)(query_end - input);
+                memcpy(base_query, input, base_length);
+                base_query[base_length] = '\0';
             }
 
             /*
-             * Parse SELECT * FROM ...
+             * SELECT * FROM ...
              */
             if (strncmp(base_query, "SELECT * FROM ", 14) == 0) {
                 if (!parse_select(base_query, table_name)) {
@@ -246,6 +287,28 @@ void start_cli(void) {
                 if (table == NULL) {
                     printf("Error: table '%s' does not exist.\n", table_name);
                     continue;
+                }
+
+                /*
+                 * Sort a temporary copy, preserving the original table.
+                 */
+                Table sorted_table;
+
+                if (has_order) {
+                    if (find_column(table, order_column) == -1) {
+                        printf("Error: column '%s' does not exist.\n",
+                               order_column);
+                        continue;
+                    }
+
+                    sorted_table = *table;
+
+                    if (!sort_table(&sorted_table, order_column, descending)) {
+                        printf("Error: could not sort table.\n");
+                        continue;
+                    }
+
+                    table = &sorted_table;
                 }
 
                 if (has_where) {
@@ -274,7 +337,7 @@ void start_cli(void) {
                 }
             }
             /*
-             * Parse SELECT column1, column2 FROM ...
+             * SELECT column1, column2 FROM ...
              */
             else {
                 char columns_text[MAX_NAME_LENGTH];
@@ -341,8 +404,25 @@ void start_cli(void) {
                     token = strtok(NULL, ",");
                 }
 
-                if (!valid_columns || token != NULL || selected_count == 0) {
+                if (!valid_columns || selected_count == 0) {
                     continue;
+                }
+
+                if (has_order) {
+                    if (find_column(table, order_column) == -1) {
+                        printf("Error: column '%s' does not exist.\n",
+                               order_column);
+                        continue;
+                    }
+
+                    Table sorted_table = *table;
+
+                    if (!sort_table(&sorted_table, order_column, descending)) {
+                        printf("Error: could not sort table.\n");
+                        continue;
+                    }
+
+                    table = &sorted_table;
                 }
 
                 if (has_where) {
@@ -352,19 +432,14 @@ void start_cli(void) {
                         continue;
                     }
 
-                    /*
-                     * Create a temporary table containing only matching rows.
-                     */
                     Table filtered_table = *table;
                     filtered_table.row_count = 0;
 
                     for (int i = 0; i < table->row_count; i++) {
                         if (row_matches_condition(table, &table->rows[i],
                                                   &condition)) {
-                            filtered_table.rows[filtered_table.row_count] =
+                            filtered_table.rows[filtered_table.row_count++] =
                                 table->rows[i];
-
-                            filtered_table.row_count++;
                         }
                     }
 
@@ -389,7 +464,6 @@ void start_cli(void) {
             char tokens[MAX_COLUMNS][MAX_NAME_LENGTH] = {"1", "Nikita", "20"};
 
             init_table(&table, "students");
-
             add_column(&table, "id", TYPE_INT);
             add_column(&table, "name", TYPE_STRING);
             add_column(&table, "age", TYPE_INT);
@@ -409,7 +483,6 @@ void start_cli(void) {
             Row row;
 
             init_table(&table, "students");
-
             add_column(&table, "id", TYPE_INT);
             add_column(&table, "name", TYPE_STRING);
             add_column(&table, "age", TYPE_INT);
@@ -430,7 +503,6 @@ void start_cli(void) {
             Row row;
 
             init_table(&table, "students");
-
             add_column(&table, "id", TYPE_INT);
             add_column(&table, "name", TYPE_STRING);
             add_column(&table, "age", TYPE_INT);
@@ -483,7 +555,6 @@ void start_cli(void) {
             Row row;
 
             init_table(&table, "students");
-
             add_column(&table, "id", TYPE_INT);
             add_column(&table, "name", TYPE_STRING);
             add_column(&table, "age", TYPE_INT);
