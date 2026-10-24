@@ -27,3 +27,5 @@ data/*.db
 # Runtime database files
 minidb.dat
 data/*.db
+minidb_backup.dat
+minidb_old.dat

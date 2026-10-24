@@ -67,7 +67,7 @@ int parse_create_table(const char *input, Table *table) {
         if (type == (ColumnType)-1) {
             return 0;
         }
-
+	
         if (!add_column(table, column_name, type)) {
             return 0;
         }
@@ -152,7 +152,11 @@ int parse_values(const char *values_text, char tokens[][MAX_NAME_LENGTH],
 
     for (int i = 0;; i++) {
         char current = values_text[i];
-
+if (!in_quotes && (current == ' ' || current == '\t')) {
+    if (char_index == 0) {
+        continue;
+    }
+}
         if (current == '"') {
             in_quotes = !in_quotes;
             continue;
@@ -191,8 +195,10 @@ int parse_values(const char *values_text, char tokens[][MAX_NAME_LENGTH],
 
 int build_row(const Table *table, char tokens[][MAX_NAME_LENGTH],
               int token_count, Row *row) {
+    
+
     if (token_count != table->column_count) {
-        return 0;
+    	return 0;
     }
 
     for (int i = 0; i < table->column_count; i++) {
@@ -548,35 +554,21 @@ int parse_order_by(const char *input, char *column_name, int *descending) {
     order_start += strlen(keyword);
 
     char column[MAX_NAME_LENGTH];
-    char direction[10];
-    int consumed = 0;
+    char direction[10] = "ASC";
+    int count = sscanf(order_start, "%49s %9s", column, direction);
 
-    if (sscanf(order_start, "%49s %9s%n", column, direction, &consumed) != 2) {
+    if (count < 1 || count > 2) {
         return 0;
     }
 
-    /* Remove a trailing semicolon from the direction. */
-    size_t direction_length = strlen(direction);
-
-    if (direction_length > 0 && direction[direction_length - 1] == ';') {
-        direction[direction_length - 1] = '\0';
+    size_t len = strlen(column);
+    if (len > 0 && column[len - 1] == ';') {
+        column[len - 1] = '\0';
     }
 
-    while (order_start[consumed] == ' ') {
-        consumed++;
-    }
-
-    /* Also allow a semicolon after the direction. */
-    if (order_start[consumed] == ';') {
-        consumed++;
-    }
-
-    while (order_start[consumed] == ' ') {
-        consumed++;
-    }
-
-    if (order_start[consumed] != '\0') {
-        return 0;
+    len = strlen(direction);
+    if (len > 0 && direction[len - 1] == ';') {
+        direction[len - 1] = '\0';
     }
 
     if (strcmp(direction, "ASC") == 0) {
